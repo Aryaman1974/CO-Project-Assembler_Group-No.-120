@@ -1,3 +1,23 @@
+def process_input_file(filename):
+    megalist = []
+    label_dict = {}
+    pc = 0
+    with open(filename, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if not line:
+                continue
+            if ':' in line:
+                label, instruction = line.split(':')
+                label = label.strip()
+                label_dict[label] = pc
+                if instruction.strip():
+                    megalist.append(instruction.strip())
+            else:
+                megalist.append(line)
+            pc += 4
+    return megalist, label_dict
+    
 def reg_value(s):
     abi = ["zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6", "fp"]
     for i in range(32):
@@ -108,6 +128,7 @@ def r_type(l):
     for i in range(5, -1, -1):
         val += a[i]
     return val
+    
 def encode_b_type(instruction, label_dict, pc):
     parts = sep_command(instruction, label_dict, pc)
     opcode = "1100011"
@@ -119,6 +140,15 @@ def encode_b_type(instruction, label_dict, pc):
     imm_bin=imm[::-1]
     imm_final = imm_bin[12] + imm_bin[10:4:-1] + imm_bin[4:0:-1] + imm_bin[11]
     return imm_final[0:7:1] + rs2 + rs1 + funct3 + imm_final[7:13:1] + opcode
+
+def j_type(l):
+    rd = reg_value(l[1])
+    opcode = '1101111'
+    imm = int(l[2])
+    imm_bin = binary_conv(imm, 21)
+    imm_bin=imm_bin[::-1]
+    imm_reordered = imm_bin[20] + imm_bin[10:0:-1] + imm_bin[11] + imm_bin[19:11:-1]
+    return imm_reordered + binary_conv(rd, 5) + opcode
 
 def process_and_write_output(input_filename, output_filename):
     instructions, label_dict = process_input_file(input_filename)
