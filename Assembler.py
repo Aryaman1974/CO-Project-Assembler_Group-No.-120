@@ -41,6 +41,85 @@ def sep_command(comm, label_dict=None, pc=0):
         result.extend(parts[1:])
     return result
 
+def r_type(l):
+
+    a = ["", "", "", "", "", ""]
+    if l[0] == "add":
+        rs1 = reg_value(l[2])
+        rs2 = reg_value(l[3])
+        rd = reg_value(l[1])
+        a[0] = "0110011"
+        a[1] = binary_conv(rd, 5)
+        a[2] = "000"
+        a[3] = binary_conv(rs1, 5)
+        a[4] = binary_conv(rs2, 5)
+        a[5] = "0000000"
+    elif l[0] == "sub":
+        rs1 = reg_value(l[2])
+        rs2 = reg_value(l[3])
+        rd = reg_value(l[1])
+        a[0] = "0110011"
+        a[1] = binary_conv(rd, 5)
+        a[2] = "000"
+        a[3] = binary_conv(rs1, 5)
+        a[4] = binary_conv(rs2, 5)
+        a[5] = "0100000"
+    elif l[0] == "slt":
+        rs1 = reg_value(l[2])
+        rs2 = reg_value(l[3])
+        rd = reg_value(l[1])
+        a[0] = "0110011"
+        a[1] = binary_conv(rd, 5)
+        a[2] = "010"
+        a[3] = binary_conv(rs1, 5)
+        a[4] = binary_conv(rs2, 5)
+        a[5] = "0000000"
+    elif l[0] == "srl":
+        rs1 = reg_value(l[2])
+        rs2 = reg_value(l[3])
+        rd = reg_value(l[1])
+        a[0] = "0110011"
+        a[1] = binary_conv(rd, 5)
+        a[2] = "101"
+        a[3] = binary_conv(rs1, 5)
+        a[4] = binary_conv(rs2, 5)
+        a[5] = "0000000"
+    elif l[0]=="or":
+        rs1 = reg_value(l[2])
+        rs2 = reg_value(l[3])
+        rd = reg_value(l[1])
+        a[0] = "0110011"
+        a[1] = binary_conv(rd, 5)
+        a[2] = "110"
+        a[3] = binary_conv(rs1, 5)
+        a[4] = binary_conv(rs2, 5)
+        a[5] = "0000000"
+    elif l[0] == "and":
+        rs1 = reg_value(l[2])
+        rs2 = reg_value(l[3])
+        rd = reg_value(l[1])
+        a[0] = "0110011"
+        a[1] = binary_conv(rd, 5)
+        a[2] = "111"
+        a[3] = binary_conv(rs1, 5)
+        a[4] = binary_conv(rs2, 5)
+        a[5] = "0000000"
+    val = ""
+    for i in range(5, -1, -1):
+        val += a[i]
+    return val
+def encode_b_type(instruction, label_dict, pc):
+    parts = sep_command(instruction, label_dict, pc)
+    opcode = "1100011"
+    funct3_dict = {"beq": "000", "bne": "001", "blt": "100"}
+    funct3 = funct3_dict.get(parts[0], "000")
+    rs1 = binary_conv(reg_value(parts[1]), 5)
+    rs2 = binary_conv(reg_value(parts[2]), 5)
+    imm = binary_conv(int(parts[3]), 13)
+    imm_bin=imm[::-1]
+    imm_final = imm_bin[12] + imm_bin[10:4:-1] + imm_bin[4:0:-1] + imm_bin[11]
+    return imm_final[0:7:1] + rs2 + rs1 + funct3 + imm_final[7:13:1] + opcode
+
 def process_and_write_output(input_filename, output_filename):
     instructions, label_dict = process_input_file(input_filename)
     
