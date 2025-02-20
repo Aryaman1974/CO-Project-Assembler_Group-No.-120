@@ -31,6 +31,19 @@ def binary_conv(n, x):
     s = "0"+str(x)+"b"
     return format(n% (1 << x), s)
 
+
+def for_lw(instruction):
+    left_paren = instruction.find('(')
+    right_paren = instruction.find(')')
+    
+    if left_paren == -1 or right_paren == -1 or left_paren > right_paren:
+        return None  # Invalid format
+
+    imm = int(instruction[:left_paren].strip())  # Extract and convert imm to int
+    rs1 = instruction[left_paren + 1:right_paren].strip()  # Extract rs1
+    l = [imm, rs1]
+    return l
+
 def sep_command(comm, label_dict=None, pc=0):
     parts = comm.replace(",", " ").split()
     while len(parts) < 4:
@@ -60,6 +73,35 @@ def sep_command(comm, label_dict=None, pc=0):
     else:
         result.extend(parts[1:])
     return result
+
+
+def encode_s_type(instruction):
+    parts = sep_command(instruction)
+
+    if len(parts) != 4 or "," not in instruction:
+        raise ValueError("Invalid S-type instruction format")
+
+    rs2 = reg_value(parts[1])  #taking for eg s2
+
+    # to separate 4(sp) individually
+    imm, rs1 = parts[2].split("(")
+    imm = int(imm)
+    rs1 = reg_value(rs1[:-1])  # Removing )
+
+    if rs1 is None or rs2 is None:
+        raise ValueError("Invalid register name")
+
+    opcode = "0100011" 
+    funct3 = "010"
+
+    imm = f"{imm & ((1 << 12) - 1):012b}"  #12 bit imm
+    imm_high = imm[:7]  # imm[11:5]
+    imm_low = imm[7:]   # imm[4:0]
+
+    rs1_bin = f"{rs1:05b}"  # Convert rs1 to 5-bit binary
+    rs2_bin = f"{rs2:05b}"  # Convert rs2 to 5-bit binary
+
+    return imm_high + rs2_bin + rs1_bin + funct3 + imm_low + opcode
 
 def r_type(l):
 
@@ -149,6 +191,25 @@ def j_type(l):
     imm_bin=imm_bin[::-1]
     imm_reordered = imm_bin[20] + imm_bin[10:0:-1] + imm_bin[11] + imm_bin[19:11:-1]
     return imm_reordered + binary_conv(rd, 5) + opcode
+
+i_type_instructions = {"lw": {"opcode":"0000011", "funct3":"010"}, "addi":{"opcode":"0010011", "funct3":"000"}, "jalr":  {"opcode":"1100111", "funct3":"000"}}
+
+def encode_i_type(instruction, rd, rs1, imm):
+    # Convert I-type instruction to 32-bit binary
+    if instruction not in i_type_instructions:
+        raise ValueError("Invalid I-type instruction")
+
+    opcode = i_type_instructions[instruction]["opcode"]
+    funct3 = i_type_instructions[instruction]["funct3"]
+    print(rd, rs1)
+    rd_bin = binary_conv(reg_value(rd), 5)
+    rs1_bin = binary_conv(reg_value(rs1), 5)
+    imm_bin = binary_conv(int(imm), 12)
+
+    # Final 32-bit instruction
+    binary_instruction = imm_bin + rs1_bin + funct3 + rd_bin + opcode
+    
+    return binary_instruction
 
 def process_and_write_output(input_filename, output_filename):
     instructions, label_dict = process_input_file(input_filename)
